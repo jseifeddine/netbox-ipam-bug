@@ -7,7 +7,10 @@ This repository contains a test environment to reproduce and verify a specific I
 The issue occurs when:
 - A large number of interfaces are created (10,000 in this test)
 - The same IP addresses are assigned to multiple interfaces
-- Some interfaces end up with incorrect IP address assignments (missing IPs or having too many)
+- When querying the API for IP addresses, the returned data is inconsistent:
+  - Some interfaces show missing IP addresses
+  - Some interfaces show too many IP addresses
+  - The actual database state doesn't match what the API returns
 
 ## Requirements
 
@@ -64,7 +67,7 @@ This script will:
 - Start the NetBox Docker stack
 - Create an API token for authentication
 - Insert dummy test data (10,000 interfaces with the same IP addresses assigned to each)
-- Run the test cases to verify IP address assignments
+- Run the test cases to verify IP address assignments via the API
 - Output results to a text file
 
 ## Customizing NetBox Version
@@ -82,9 +85,9 @@ The default version used is v4.1.5.
 - `docker-compose.yml` - Docker Compose configuration for NetBox
 - `initialize-and-test.sh` - Main script to set up environment and run tests
 - `insert_dummy_data.py` - Script to populate NetBox with test data (creates a device with 10,000 interfaces and assigns the same IP addresses to each)
-- `test-ipam.py` - Test script to verify IPAM functionality and detect assignment issues
+- `test-ipam.py` - Test script to verify IPAM functionality and detect inconsistencies in API responses
 - `requirements.txt` - Python dependencies (pynetbox, python-dotenv)
 
 ## Test Results
 
-After running the tests, results will be saved to a text file named `test_output_[VERSION].txt` in the repository directory. This file will show if any interfaces have incorrect IP address assignments (should have exactly 2 IPs per interface).
+After running the tests, results will be saved to a text file named `test_output_[VERSION].txt` in the repository directory. This file will show if any interfaces have incorrect IP address assignments according to the API (each interface should have exactly 2 IPs).
