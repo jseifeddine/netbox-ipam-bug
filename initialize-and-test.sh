@@ -30,7 +30,7 @@ echo "Stopping NetBox docker compose stack..."
 docker compose down
 
 echo "Cleaning up previous volumes..."
-docker volume rm $(basename $PWD)_postgresql
+docker volume rm $(basename $PWD)_postgresql || true
 
 echo "Creating venv..."
 python3 -m venv venv
