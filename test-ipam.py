@@ -42,7 +42,7 @@ print()
 
 for interface, ips in interface_ips.items():
     if len(ips) != 2:
-        print(f"ERROR: Interface {interface} has {len(ips)} IP addresses")
+        print(f"BUG: Interface {interface} has {len(ips)} IP addresses")
         for ip in ips:
             print(f"IP {ip.address} (ID: {ip.id}) is assigned to {ip.assigned_object.name}")
 
