@@ -1,6 +1,6 @@
 # NetBox IPAM Bug Reproduction
 
-This repository contains a test environment to reproduce and verify a specific IPAM (IP Address Management) bug in NetBox where IP addresses may not be correctly assigned to interfaces when creating them in bulk.
+This repository contains a test environment to reproduce and verify a specific IPAM (IP Address Management) bug in NetBox where IP addresses returned from Netbox IPAM API is inconsistent with reality.
 
 ## Bug Description
 
