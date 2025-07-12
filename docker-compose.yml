@@ -1,0 +1,50 @@
+services:
+  netbox:
+    restart: always
+    image: netboxcommunity/netbox:${NETBOX_VERSION:-v4.1.5}
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - 8080:8080
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - SUPERUSER_EMAIL=admin@netbox.invalid
+      - SUPERUSER_PASSWORD=netbox
+      - ALLOWED_HOST=*
+      - DB_NAME=netbox
+      - DB_USER=netbox
+      - DB_PASSWORD=netbox
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - REDIS_DB_TASK=10
+      - REDIS_DB_CACHE=11
+      - SECRET_KEY="P5+Br5VNBoMqC2@&UPzh_OKzCLkjbuUisR-c#TqR_I+)$=2JHy"
+      # - DEBUG=True
+      # - DB_WAIT_DEBUG=1
+
+  postgres:
+      restart: always
+      image: bitnami/postgresql:latest
+      environment:
+        - POSTGRESQL_USERNAME=netbox
+        - POSTGRESQL_DATABASE=netbox
+        - POSTGRESQL_PASSWORD=netbox
+        - POSTGRESQL_POSTGRES_PASSWORD=netbox
+      volumes:
+        - postgresql:/bitnami/postgresql
+      # ports:
+      #   - 5432:5432
+
+  redis:
+    restart: always
+    image: bitnami/redis:latest
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+
+volumes:
+  postgresql: {}
