@@ -13,6 +13,23 @@ nb = pynetbox.api(
     token=os.getenv("NETBOX_TOKEN")
 )
 
+# Function to check if NetBox version is above a specified version
+def is_version_above(current_version, min_version):
+    current_parts = [int(x) for x in current_version.split('.')]
+    min_parts = [int(x) for x in min_version.split('.')]
+    
+    for i in range(max(len(current_parts), len(min_parts))):
+        current = current_parts[i] if i < len(current_parts) else 0
+        minimum = min_parts[i] if i < len(min_parts) else 0
+        if current > minimum:
+            return True
+        elif current < minimum:
+            return False
+    return True
+
+status = nb.status()
+netbox_version = status["netbox-version"]
+
 # Helper function to get or create objects
 def get_or_create(endpoint, **kwargs):
     try:
@@ -149,28 +166,29 @@ for interface in interfaces:
         "assigned_object_id": interface.id
     })
 
-print(f"Creating {len(mac_data)} MAC addresses for {len(interfaces)} interfaces...")
-try:
-    mac_addresses = nb.dcim.mac_addresses.create(mac_data)
-    print(f"Created {len(mac_addresses)} MAC addresses")
-except pynetbox.core.query.RequestError as e:
-    print(f"Error creating MAC addresses: {e}")
-    mac_addresses = []
-
-# Set MAC addresses as primary for their interfaces
-if mac_addresses:
-    print(f"Setting primary MAC addresses for interfaces...")
-    interfaces_to_update = []
-    
-    for interface, mac in zip(interfaces, mac_addresses):
-        interfaces_to_update.append({
-            'id': interface.id,
-            'primary_mac_address': mac.id
-        })
-    
+if is_version_above(netbox_version, "4.2.0"):
+    print(f"Creating {len(mac_data)} MAC addresses for {len(interfaces)} interfaces...")
     try:
-        updated_interfaces = nb.dcim.interfaces.update(interfaces_to_update)
-        print(f"Updated {len(updated_interfaces)} interfaces with primary MAC addresses")
+        mac_addresses = nb.dcim.mac_addresses.create(mac_data)
+        print(f"Created {len(mac_addresses)} MAC addresses")
     except pynetbox.core.query.RequestError as e:
-        print(f"Error setting primary MAC addresses: {e}")
+        print(f"Error creating MAC addresses: {e}")
+        mac_addresses = []
+
+    # Set MAC addresses as primary for their interfaces
+    if mac_addresses:
+        print(f"Setting primary MAC addresses for interfaces...")
+        interfaces_to_update = []
+        
+        for interface, mac in zip(interfaces, mac_addresses):
+            interfaces_to_update.append({
+                'id': interface.id,
+                'primary_mac_address': mac.id
+            })
+        
+        try:
+            updated_interfaces = nb.dcim.interfaces.update(interfaces_to_update)
+            print(f"Updated {len(updated_interfaces)} interfaces with primary MAC addresses")
+        except pynetbox.core.query.RequestError as e:
+            print(f"Error setting primary MAC addresses: {e}")
 

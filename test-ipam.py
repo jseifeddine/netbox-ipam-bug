@@ -11,13 +11,34 @@ nb = pynetbox.api(
     token=os.getenv("NETBOX_TOKEN")
 )
 
+# Function to check if NetBox version is above a specified version
+def is_version_above(current_version, min_version):
+    current_parts = [int(x) for x in current_version.split('.')]
+    min_parts = [int(x) for x in min_version.split('.')]
+    
+    for i in range(max(len(current_parts), len(min_parts))):
+        current = current_parts[i] if i < len(current_parts) else 0
+        minimum = min_parts[i] if i < len(min_parts) else 0
+        if current > minimum:
+            return True
+        elif current < minimum:
+            return False
+    return True
+
+status = nb.status()
+netbox_version = status["netbox-version"]
+
+all_netbox_macs = None
+
 all_netbox_interfaces = list(nb.dcim.interfaces.filter(device_id=1))
 all_netbox_ips = list(nb.ipam.ip_addresses.filter(device_id=1))
-all_netbox_macs = list(nb.dcim.mac_addresses.filter(device_id=1))
+if is_version_above(netbox_version, "4.2.0"):
+    all_netbox_macs = list(nb.dcim.mac_addresses.filter(device_id=1))
 
 print(f"Found {len(all_netbox_interfaces)} interfaces in NetBox for device 1")
 print(f"Found {len(all_netbox_ips)} IP addresses in NetBox for device 1")
-print(f"Found {len(all_netbox_macs)} MAC addresses in NetBox for device 1")
+if all_netbox_macs:
+    print(f"Found {len(all_netbox_macs)} MAC addresses in NetBox for device 1")
 
 # This was initially how I found the problem, interfaces missing IPs, some showing too many, double ups etc.
 # for ip in all_netbox_ips:
@@ -37,23 +58,26 @@ for ip in all_netbox_ips:
             interface_ips[ip.assigned_object.name] = []
         interface_ips[ip.assigned_object.name].append(ip)
 
-for mac in all_netbox_macs:
-    if mac.assigned_object and mac.assigned_object.name:
-        if not interface_macs.get(mac.assigned_object.name):
-            interface_macs[mac.assigned_object.name] = []
-        interface_macs[mac.assigned_object.name].append(mac)
+if all_netbox_macs:
+    for mac in all_netbox_macs:
+        if mac.assigned_object and mac.assigned_object.name:
+            if not interface_macs.get(mac.assigned_object.name):
+                interface_macs[mac.assigned_object.name] = []
+            interface_macs[mac.assigned_object.name].append(mac)
 
 # print length of interface_ips and accumaltive length of its ips
 print(f"Found {len(interface_ips)} interfaces with {sum(len(ips) for ips in interface_ips.values())} IP addresses")
-print(f"Found {len(interface_macs)} interfaces with {sum(len(macs) for macs in interface_macs.values())} MAC addresses")
+if all_netbox_macs:
+    print(f"Found {len(interface_macs)} interfaces with {sum(len(macs) for macs in interface_macs.values())} MAC addresses")
 print()
 print("Each interface should have exactly two addresses")
 print("- 172.17.0.1/32")
 print("- ff1d:c7c:7b44:d39d:ab3d:6fde:f46a:4648/64")
 print()
-print("Each interface should have exactly one MAC address")
-print("- 18:2A:D3:65:90:2E")
-print()
+if all_netbox_macs:
+    print("Each interface should have exactly one MAC address")
+    print("- 18:2A:D3:65:90:2E")
+    print()
 
 for interface, ips in interface_ips.items():
     if len(ips) != 2:
@@ -63,19 +87,20 @@ for interface, ips in interface_ips.items():
 
 print()
 
-for interface, macs in interface_macs.items():
-    if len(macs) != 1:
-        print(f"BUG: Interface {interface} has {len(macs)} MAC addresses")
-        for mac in macs:
-            print(f"MAC {mac.mac_address} (ID: {mac.id}) is assigned to {mac.assigned_object.name}")
+if all_netbox_macs:
+    for interface, macs in interface_macs.items():
+        if len(macs) != 1:
+            print(f"BUG: Interface {interface} has {len(macs)} MAC addresses")
+            for mac in macs:
+                print(f"MAC {mac.mac_address} (ID: {mac.id}) is assigned to {mac.assigned_object.name}")
 
-print()
+    print()
 
-for interface in all_netbox_interfaces:
-    if len(interface.mac_addresses) != 1:
-        print(f"BUG: Interface {interface.name} has {len(interface.mac_addresses)} MAC addresses")
-        for mac in interface.mac_addresses:
-            print(f"MAC {mac.mac_address} (ID: {mac.id}) is assigned to {interface.name}")
+    for interface in all_netbox_interfaces:
+        if len(interface.mac_addresses) != 1:
+            print(f"BUG: Interface {interface.name} has {len(interface.mac_addresses)} MAC addresses")
+            for mac in interface.mac_addresses:
+                print(f"MAC {mac.mac_address} (ID: {mac.id}) is assigned to {interface.name}")
 
 print()
 print("Test complete")
