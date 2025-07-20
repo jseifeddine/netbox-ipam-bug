@@ -140,3 +140,37 @@ try:
 except pynetbox.core.query.RequestError as e:
     print(f"Error creating IP addresses: {e}")
 
+# Create MAC addresses for all interfaces in bulk
+mac_data = []
+for interface in interfaces:
+    mac_data.append({
+        "mac_address": "18:2A:D3:65:90:2E",
+        "assigned_object_type": "dcim.interface",
+        "assigned_object_id": interface.id
+    })
+
+print(f"Creating {len(mac_data)} MAC addresses for {len(interfaces)} interfaces...")
+try:
+    mac_addresses = nb.dcim.mac_addresses.create(mac_data)
+    print(f"Created {len(mac_addresses)} MAC addresses")
+except pynetbox.core.query.RequestError as e:
+    print(f"Error creating MAC addresses: {e}")
+    mac_addresses = []
+
+# Set MAC addresses as primary for their interfaces
+if mac_addresses:
+    print(f"Setting primary MAC addresses for interfaces...")
+    interfaces_to_update = []
+    
+    for interface, mac in zip(interfaces, mac_addresses):
+        interfaces_to_update.append({
+            'id': interface.id,
+            'primary_mac_address': mac.id
+        })
+    
+    try:
+        updated_interfaces = nb.dcim.interfaces.update(interfaces_to_update)
+        print(f"Updated {len(updated_interfaces)} interfaces with primary MAC addresses")
+    except pynetbox.core.query.RequestError as e:
+        print(f"Error setting primary MAC addresses: {e}")
+
