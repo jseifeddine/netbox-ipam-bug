@@ -75,12 +75,37 @@ class NetBoxAPI:
         
         results = []
         next_url = url
+        page_count = 1
         
         # Follow pagination by getting all pages
         while next_url:
+            # Print request details before making the request
+            print(f"\n--- NetBox API Request (Page {page_count}) ---")
+            print(f"URL: {next_url}")
+            print(f"Method: GET")
+            print(f"Headers: {json.dumps({k: v if k != 'Authorization' else '[REDACTED]' for k, v in self.headers.items()}, indent=2)}")
+            print(f"Params: {json.dumps(params, indent=2)}")
+            
+            # Make the request
             response = requests.get(next_url, headers=self.headers, params=params, verify=self.verify_ssl)
+            
+            # Print response details
+            print(f"\n--- NetBox API Response (Page {page_count}) ---")
+            print(f"Status Code: {response.status_code}")
+            print(f"Response Time: {response.elapsed.total_seconds():.3f} seconds")
+            print(f"Response Size: {len(response.content)} bytes")
+            
+            # Raise exception for bad status codes
             response.raise_for_status()
             data = response.json()
+            
+            # Print pagination info if available
+            if 'results' in data:
+                result_count = len(data['results'])
+                total_count = data.get('count', 'unknown')
+                print(f"Results: {result_count} items (Page {page_count}, Total: {total_count})")
+                if data.get('next'):
+                    print(f"Next Page: {data['next']}")
             
             # Add results from this page
             if 'results' in data:
@@ -89,11 +114,14 @@ class NetBoxAPI:
                 next_url = data.get('next')
                 # Clear params after first request as they're included in the next URL
                 params = {}
+                page_count += 1
             else:
                 # If no pagination, just return the data as DotDict
+                print(f"Single response (non-paginated)")
                 return DotDict(data)
                 
         # Return compiled results as list of DotDict objects
+        print(f"\nCompleted API requests: {page_count-1} page(s), {len(results)} total items retrieved")
         return results
         
     def status(self) -> Dict:
@@ -107,7 +135,21 @@ class NetBoxAPI:
             url = f"{self.url}/status/"
         else:
             url = f"{self.url}/api/status/"
+        
+        # Print request details
+        print("\n--- NetBox API Status Request ---")
+        print(f"URL: {url}")
+        print(f"Method: GET")
+        print(f"Headers: {json.dumps({k: v if k != 'Authorization' else '[REDACTED]' for k, v in self.headers.items()}, indent=2)}")
             
+        # Make the request
         response = requests.get(url, headers=self.headers, verify=self.verify_ssl)
+        
+        # Print response details
+        print("\n--- NetBox API Status Response ---")
+        print(f"Status Code: {response.status_code}")
+        print(f"Response Time: {response.elapsed.total_seconds():.3f} seconds")
+        print(f"Response Size: {len(response.content)} bytes")
+        
         response.raise_for_status()
         return DotDict(response.json())
